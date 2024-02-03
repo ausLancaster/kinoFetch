@@ -11,7 +11,10 @@ class Site(ABC):
 
     def fetch_html(self):
         try:
-            response = requests.get(self.url)
+            cookie_variable = {"user-set-location": "VIC"}
+            session = requests.Session()
+            session.cookies.update(cookie_variable)
+            response = session.get(self.url)
             response.raise_for_status()
 
             return response.text
@@ -42,7 +45,6 @@ class Palace(Site):
         cinema_elements = soup.find_all('div', 'quick-times-cinema')
         for div in cinema_elements:
             try:
-                print(f"{div.h3}")
                 cinema_name = div.h3.string
                 result += f"{cinema_name.capitalize()}\n\n"
                 # get films
