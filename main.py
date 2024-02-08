@@ -91,6 +91,7 @@ class Palace(Site):
     Site.base_url = "https://www.palacecinemas.com.au"
     Site.session_url = Site.base_url + "/session-times"
     Site.cookies = {"user-set-location": "VIC"}
+    blacklist = ["Opéra de Paris", "Paris Opera Ballet", "Opera di Roma", "Royal Ballet", "Royal Opera", "NT LIVE"]
 
     def scrape_html(self):
         result = ""
@@ -110,8 +111,16 @@ class Palace(Site):
                 continue
             for film in films:
                 try:
-                    # get title and remove rating
+                    # get title
                     title = film.p.a.b.string
+                    # skip blacklisted titles
+                    skip_movie = False
+                    for blacklisted_string in self.blacklist:
+                        if blacklisted_string in title:
+                            skip_movie = True
+                    if skip_movie:
+                        continue
+                    # remove rating
                     pattern = r'\s*\([^)]*\)$'
                     title = re.sub(pattern, '', title)
                     # remove brackets
