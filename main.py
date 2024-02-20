@@ -6,6 +6,7 @@ import re
 import traceback
 from urllib.parse import quote
 import json
+from listing import Listing
 
 OMDB_URL = "https://www.omdbapi.com/?apikey=d6d62bc2"
 MOVIE_DICTIONARY_FILENAME = "movie_dictionary.json"
@@ -23,29 +24,23 @@ def save_movie_dictionary(dictionary):
         json.dump(dictionary, file)
 
 
-class Site(ABC):
+class Cinema(ABC):
+    name = ""
     session_url = ""
     cookies = ""
     html = ""
-    listings = ""
+    listings = []
     initialized = False
-    nearest_thursday = None
     current_year = None
     omdb_calls = 0
     result = ""
     movie_dictionary = load_movie_dictionary()
+    nearest_thursday = None
 
     def __init__(self):
         if not self.initialized:
-            self._initialize_once(self)
+            # self._initialize_once(self)
             self.initialized = True
-
-    @staticmethod
-    def _initialize_once(self):
-        today = datetime.now()
-        today = today.replace(hour=12, minute=0, second=0, microsecond=0)
-        days_to_thursday = (today.weekday() - 3) % 7
-        Site.nearest_thursday = today - timedelta(days=days_to_thursday)
 
     @staticmethod
     def fetch_html(url, cookies=None):
@@ -78,28 +73,35 @@ class Site(ABC):
     def scrape_html(self):
         pass
 
+    def to_markup(self):
+        markup = f"{self.name}\n\n"
+        for listing in self.listings:
+            markup += listing.to_markup()
+            markup += "\n\n"
+        return markup
+
     def process(self):
-        print(f"Processing...\n")
-        Site.current_year = str(datetime.now().year)
-        Site.html = Site.fetch_html(self.session_url, Site.cookies)
-        Site.listings = self.scrape_html()
-        print(f"--- LISTINGS ---: \n\n\n{self.listings}")
+        Cinema.current_year = str(datetime.now().year)
+        Cinema.html = Cinema.fetch_html(self.session_url, Cinema.cookies)
+        self.scrape_html()
+        return self.to_markup()
 
     @staticmethod
     def is_within_week(target_date):
-        date_difference = target_date - Site.nearest_thursday
+        date_difference = target_date - Cinema.nearest_thursday
         return timedelta(days=0) <= date_difference <= timedelta(days=6)
 
 
-class Palace(Site):
-    Site.base_url = "https://www.palacecinemas.com.au"
-    Site.session_url = Site.base_url + "/session-times"
-    Site.cookies = {"user-set-location": "VIC"}
+class Palace(Cinema):
+    Cinema.name = "Kino Cinema"
+    Cinema.base_url = "https://www.palacecinemas.com.au"
+    Cinema.session_url = Cinema.base_url + "/session-times"
+    Cinema.cookies = {"user-set-location": "VIC"}
     blacklist = ["Opéra de Paris", "Paris Opera Ballet", "Opera di Roma", "Royal Ballet", "Royal Opera", "NT LIVE"]
-    cinema_list = ['Kino cinema'] # , 'Pentridge cinema', 'Palace balwyn cinema', 'Palace brighton bay', 'Palace cinema como', 'Palace dendy brighton', 'Palace westgarth', 'Palace penny lane']
+    cinema_list = ['Kino cinema']  # , 'Pentridge cinema', 'Palace balwyn cinema', 'Palace brighton bay', 'Palace cinema como', 'Palace dendy brighton', 'Palace westgarth', 'Palace penny lane']
 
     def scrape_html(self):
-        soup = BeautifulSoup(Site.html, "html.parser")
+        soup = BeautifulSoup(Cinema.html, "html.parser")
         cinema_elements = soup.find_all('div', 'quick-times-cinema')
         for div in cinema_elements:
             try:
@@ -125,15 +127,16 @@ class Palace(Site):
                     print(f"Reason: {e}")
                     traceback.print_exc()
                     continue
-            Site.result += "\n"
+            Cinema.result += "\n"
             break
-        if Site.result.isalpha():
+        if Cinema.result.isalpha():
             print(f"Scraping Error: Results are empty")
-        return Site.result
+        return Cinema.result
 
     def process_film(self, film):
         # get title
         title = film.p.a.b.string
+
         # skip blacklisted titles
         skip_movie = False
         for blacklisted_string in self.blacklist:
@@ -141,81 +144,83 @@ class Palace(Site):
                 skip_movie = True
         if skip_movie:
             return
+
         # remove rating
         pattern = r'\s*\([^)]*\)$'
         title = re.sub(pattern, '', title)
+
         # remove brackets
         title = re.sub(pattern, '', title)
+
         # limit to times during the coming week (previous Thursday to next Thursday)
         date_divs = film.find_all('div', 'single-day-time')
         any_session_within_week = False
+        days = []
         for date_div in date_divs:
             data_day_value = date_div.get('data-day')
             data_day_value = data_day_value.replace('st', '').replace('nd', '').replace('rd', '').replace('th', '')
-            data_day_value += " " + str(Site.current_year)
+            data_day_value += " " + str(Cinema.current_year)
             date_obj = datetime.strptime(data_day_value, "%a %d %b %Y")
-            if not Site.is_within_week(date_obj):
+            if not Cinema.is_within_week(date_obj):
                 continue
             else:
                 any_session_within_week = True
-                # create week string
+                # collect day of week
                 day_of_week = date_obj.weekday()
-                first_letter = DAY_NAMES[day_of_week][0]
+                days.append(DAY_NAMES[day_of_week][0])
         if not any_session_within_week:
             return
-        Site.result += f"{title}"
-        Site.result += "\n"
         movie_link_a = film.p.a
-        movie_link_url = Site.base_url + movie_link_a['href']
+        movie_link_url = Cinema.base_url + movie_link_a['href']
+
         # find director and year from OMDB
-        if title in Site.movie_dictionary:
-            details = Site.movie_dictionary[title]
+        if title in Cinema.movie_dictionary:
+            details = Cinema.movie_dictionary[title]
         else:
-            # func
-            film_details_json = Site.fetch_json(OMDB_URL + "&t=" + quote(title))
-            Site.omdb_calls += 1
+            film_details_json = Cinema.fetch_json(OMDB_URL + "&t=" + quote(title))
+            Cinema.omdb_calls += 1
             if film_details_json.get("Response") == 'True':
                 details = film_details_json
             else:
                 print(f"Scraping Error: Unable to find film details for {title}.")
-                Site.result += "\n"
                 return
+
         # get director from palace's movie page for purposes of disambiguating movie titles
-        movie_page = Site.fetch_html(movie_link_url, Site.cookies)
+        movie_page = Cinema.fetch_html(movie_link_url, Cinema.cookies)
         movie_soup = BeautifulSoup(movie_page, 'html.parser')
         director_tag = movie_soup.find('h4', string='Director')
-        director_list = details.get("Director")
-        director_list = director_list.split(", ")
+        director_details = details.get("Director")
         if director_tag:
             palace_director_list = director_tag.find_next_sibling('p').text.strip()
             palace_director_list = palace_director_list.split(", ")
             director_match = False
             for d in palace_director_list:
-                if d in director_list:
+                if d in director_details.split(", "):
                     director_match = True
                     break
             if not director_match:
                 match_details = self.search_omdb_for_film_and_director(title, palace_director_list)
                 if match_details is not None:
                     details = match_details
-                    director_list = details.get("Director")
-                    director_list = director_list.split(", ")
-        Site.movie_dictionary[title] = details
-        # append details to result
-        if len(director_list) > 1:
-            director_list = ', '.join(director_list[:-1]) + ' & ' + director_list[-1]
-        else:
-            director_list = director_list[0]
-        formatted_runtime = re.sub(r'(\d+)\s*min', r'\1m', details.get("Runtime"))
-        Site.result += f"{director_list}, {details.get("Year")}, {formatted_runtime}\n"
-        Site.result += "\n"
+                    director_details = details.get("Director")
+        Cinema.movie_dictionary[title] = details
+
+        # create listing
+        Cinema.listings.append(
+            Listing(
+                title,
+                director_details.split(", "),
+                details.get("Runtime"),
+                details.get("Year"),
+                days
+            )
+        )
         return
 
     @staticmethod
     def search_omdb_for_film_and_director(title, director_list1):
-        # func
-        film_search_json = Site.fetch_json(OMDB_URL + "&s=" + quote(title))
-        Site.omdb_calls += 1
+        film_search_json = Cinema.fetch_json(OMDB_URL + "&s=" + quote(title))
+        Cinema.omdb_calls += 1
         if film_search_json:
             total = film_search_json["totalResults"]
             total = int(total)
@@ -223,8 +228,8 @@ class Palace(Site):
                 search_results = film_search_json['Search']
                 for film in search_results:
                     imdb_id = film["imdbID"]
-                    film_details_json = Site.fetch_json(OMDB_URL + "&i=" + imdb_id)
-                    Site.omdb_calls += 1
+                    film_details_json = Cinema.fetch_json(OMDB_URL + "&i=" + imdb_id)
+                    Cinema.omdb_calls += 1
                     if film_details_json:
                         director_list2 = film_details_json["Director"]
                         director_list2 = director_list2.split(", ")
@@ -241,9 +246,17 @@ class Palace(Site):
         return None
 
 
-movie_dictionary = load_movie_dictionary()
-palace = Palace()
-palace.process()
-save_movie_dictionary(movie_dictionary)
-print(f"Made {Site.omdb_calls} OMDB calls")
+def date_range_to_string():
+    today = datetime.now()
+    today = today.replace(hour=12, minute=0, second=0, microsecond=0)
+    days_to_thursday = (today.weekday() - 3) % 7
+    Cinema.nearest_thursday = today - timedelta(days=days_to_thursday)
+    return f"{Cinema.nearest_thursday.strftime("%B %d")} - {(Cinema.nearest_thursday + timedelta(days=6)).strftime("%B %d")}"
 
+
+palace = Palace()
+print(f"WEEKLY_FILM_LISTINGS\n")
+print(f"{date_range_to_string()}\n")
+print(f"{palace.process()}")
+save_movie_dictionary(Cinema.movie_dictionary)
+print(f"Made {Cinema.omdb_calls} OMDB calls")
