@@ -10,7 +10,6 @@ from listing import Listing
 
 OMDB_URL = "https://www.omdbapi.com/?apikey=d6d62bc2"
 MOVIE_DICTIONARY_FILENAME = "movie_dictionary.json"
-DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 
 def load_movie_dictionary():
@@ -35,7 +34,7 @@ class Cinema(ABC):
     omdb_calls = 0
     result = ""
     movie_dictionary = load_movie_dictionary()
-    nearest_thursday = None
+    starting_date = None
 
     def __init__(self):
         if not self.initialized:
@@ -88,7 +87,7 @@ class Cinema(ABC):
 
     @staticmethod
     def is_within_week(target_date):
-        date_difference = target_date - Cinema.nearest_thursday
+        date_difference = target_date - Cinema.starting_date
         return timedelta(days=0) <= date_difference <= timedelta(days=6)
 
 
@@ -167,7 +166,7 @@ class Palace(Cinema):
                 any_session_within_week = True
                 # collect day of week
                 day_of_week = date_obj.weekday()
-                days.append(DAY_NAMES[day_of_week][0])
+                days.append(day_of_week)
         if not any_session_within_week:
             return
         movie_link_a = film.p.a
@@ -248,10 +247,11 @@ class Palace(Cinema):
 
 def date_range_to_string():
     today = datetime.now()
-    today = today.replace(hour=12, minute=0, second=0, microsecond=0)
+    today = today.replace(hour=0, minute=0, second=0, microsecond=0)
     days_to_thursday = (today.weekday() - 3) % 7
-    Cinema.nearest_thursday = today - timedelta(days=days_to_thursday)
-    return f"{Cinema.nearest_thursday.strftime("%B %d")} - {(Cinema.nearest_thursday + timedelta(days=6)).strftime("%B %d")}"
+    nearest_thursday = today - timedelta(days=days_to_thursday)
+    Cinema.starting_date = today
+    return f"{Cinema.starting_date.strftime("%B %d")} - {(Cinema.starting_date + timedelta(days=6)).strftime("%B %d")}"
 
 
 palace = Palace()

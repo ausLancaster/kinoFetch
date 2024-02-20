@@ -2,6 +2,8 @@ from datetime import datetime, timedelta
 import re
 
 
+DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
 class Listing:
 
     def __init__(self, title, director_credit, runtime, year, days, screening_type="default"):
@@ -9,7 +11,9 @@ class Listing:
         self.director_credit = director_credit
         self.runtime = runtime
         self.year = year
-        self.days = days
+        self.days = []
+        for day in days:
+            self.days.append(DAY_NAMES[day])
         self.screening_type = screening_type
 
     def to_markup(self):
@@ -27,10 +31,9 @@ class Listing:
         return f"{director_markup}, {self.year}, {formatted_runtime}"
 
     def weekly_times_to_string(self):
-        string = ""
-        if len(self.days) >= 5:
-            pass
-        for day in self.days:
-            string += day
-        return "times"
-
+        string = "Screening "
+        if len(self.days) == 7:
+            string += "Daily"
+        else:
+            string += ", ".join(self.days)
+        return string
