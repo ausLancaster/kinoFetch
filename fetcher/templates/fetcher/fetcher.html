@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>KinoFetch</title>
+    <style>
+    h2 {
+        font-family: "Baskerville Old Face", sans-serif;
+        text-align: center;
+    }
+    .container {
+        width: 50%;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .text-area {
+        height: 200px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        font-family: "Arial", sans-serif;
+        font-size: 12px;
+        user-select: none;
+    }
+    .button-56 {
+        align-items: center;
+        background-color: #fee6e3;
+        border: 2px solid #111;
+        border-radius: 8px;
+        box-sizing: border-box;
+        color: #111;
+        cursor: pointer;
+        display: flex;
+        font-family: "Baskerville Old Face",sans-serif;
+        font-size: 16px;
+        height: 36px;
+        justify-content: center;
+        line-height: 24px;
+        max-width: 100%;
+        padding: 0 10px 0 15px;
+        position: relative;
+        text-align: center;
+        text-decoration: none;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: manipulation;
+        margin-bottom: 16px;
+    }
+
+    .button-56:after {
+        background-color: #111;
+        border-radius: 8px;
+        content: "";
+        display: block;
+        height: 36px;
+        left: 0;
+        width: 100%;
+        position: absolute;
+        top: -2px;
+        transform: translate(8px, 8px);
+        transition: transform .2s ease-out;
+        z-index: -1;
+    }
+
+    .button-56:hover:after {
+      transform: translate(0, 0);
+    }
+
+    .button-56:active {
+      background-color: #ffdeda;
+      outline: 0;
+    }
+
+    .button-56:hover {
+      outline: 0;
+    }
+
+    .button-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    @keyframes shrink {
+        from { transform: scale(4); }
+        to { transform: scale(1); }
+    }
+
+    .shrink {
+        animation: shrink 0.3s ease-out;
+    }
+
+    .copy-icon {
+        margin-left: 4px;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h2>🏃 KinoFetch 🏃</h2>
+    <div class="button-container">
+        <button onclick="copyText()" class="button-56" role="button">Copy Text<span class="copy-icon" id="copy-icon"></span></button>
+    </div>
+    <div class="text-area" id="textArea">
+        {{ listings }}
+        <b>bold part</b>
+    </div>
+    <br>
+</div>
+<script>
+const COPY_ICON = "📄";
+const TICK_ICON = "✔️";
+let copy_element = document.getElementById("copy-icon");
+copy_element.innerText = COPY_ICON;
+
+function copyText() {
+    const textArea = document.getElementById('textArea');
+    if (textArea.textContent === '') {
+        console.log("empty");
+        return
+    }
+    const styledDiv = document.createElement('div');
+    styledDiv.style.fontFamily = '"Arial", sans-serif';
+    styledDiv.innerHTML = textArea.innerHTML;
+    const htmlBlob = new Blob([styledDiv.outerHTML], {type: 'text/html'});
+
+    const text = textArea.textContent ?? '';
+    const textBlob = new Blob([text], {type: 'text/plain'});
+
+    const clipboardItem = new ClipboardItem({
+        [htmlBlob.type]: htmlBlob,
+        [textBlob.type]: textBlob,
+    });
+    navigator.clipboard.write([clipboardItem]);
+    copy_element.innerText = TICK_ICON;
+    copy_element.classList.add('shrink');
+    let copyIcon = document.querySelector('.copy-icon');
+    setTimeout(function() {
+            copy_element.classList.remove('shrink');
+    }, 400);
+}
+
+</script>
+</body>
+</html>
