@@ -4,6 +4,7 @@ import re
 
 DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
+
 class Listing:
 
     def __init__(self, title, director_credit, runtime, year, days, screening_type="default"):

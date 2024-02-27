@@ -243,20 +243,3 @@ class Palace(Cinema):
         else:
             print(f"Error: failed to search {title} on OMDB")
         return None
-
-
-def date_range_to_string():
-    today = datetime.now()
-    today = today.replace(hour=0, minute=0, second=0, microsecond=0)
-    days_to_thursday = (today.weekday() - 3) % 7
-    nearest_thursday = today - timedelta(days=days_to_thursday)
-    Cinema.starting_date = today
-    return f"{Cinema.starting_date.strftime("%B %d")} - {(Cinema.starting_date + timedelta(days=6)).strftime("%B %d")}"
-
-
-palace = Palace()
-print(f"WEEKLY_FILM_LISTINGS\n")
-print(f"{date_range_to_string()}\n")
-print(f"{palace.process()}")
-save_movie_dictionary(Cinema.movie_dictionary)
-print(f"Made {Cinema.omdb_calls} OMDB calls")
