@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>KinoFetch</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <style>
     h2 {
         font-family: "Baskerville Old Face", sans-serif;
@@ -102,8 +103,8 @@
         <button onclick="copyText()" class="button-56" role="button">Copy Text<span class="copy-icon" id="copy-icon"></span></button>
     </div>
     <div class="text-area" id="textArea">
-        {% block listings %}
-        {% endblock %}
+        <div class="placeholder">Loading...</div>
+        {% include 'fetcher/listings.html' %}
     </div>
     <br>
 </div>
@@ -112,6 +113,21 @@ const COPY_ICON = "📄";
 const TICK_ICON = "✔️";
 let copy_element = document.getElementById("copy-icon");
 copy_element.innerText = COPY_ICON;
+
+function update_listings() {
+    $('.text-area').html('').load(
+        "{% url 'update_listings' %}",
+        function(response, status, xhr) {
+                // Replace placeholder with actual content if successful
+                if (status === "success") {
+                    $('.text-area .placeholder').remove();
+                } else {
+                    $('.text-area').html('<div class="placeholder">Failed to load content.</div>');
+                }
+            }
+    );
+}
+update_listings()
 
 function copyText() {
     const textArea = document.getElementById('textArea');

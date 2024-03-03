@@ -6,10 +6,10 @@ import re
 import traceback
 from urllib.parse import quote
 import json
-from listing import Listing
+from fetcher import listing
 
 OMDB_URL = "https://www.omdbapi.com/?apikey=d6d62bc2"
-MOVIE_DICTIONARY_FILENAME = "movie_dictionary.json"
+MOVIE_DICTIONARY_FILENAME = "fetcher/movie_dictionary.json"
 
 
 def load_movie_dictionary():
@@ -38,8 +38,16 @@ class Cinema(ABC):
 
     def __init__(self):
         if not self.initialized:
-            # self._initialize_once(self)
+            Cinema.get_starting_date()
             self.initialized = True
+
+    @staticmethod
+    def get_starting_date():
+        today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+        days_to_thursday = (today.weekday() - 3) % 7
+        nearest_thursday = today - timedelta(days=days_to_thursday)
+        Cinema.starting_date = nearest_thursday
+        return nearest_thursday
 
     @staticmethod
     def fetch_html(url, cookies=None):
@@ -206,7 +214,7 @@ class Palace(Cinema):
 
         # create listing
         Cinema.listings.append(
-            Listing(
+            listing.Listing(
                 title,
                 director_details.split(", "),
                 details.get("Runtime"),

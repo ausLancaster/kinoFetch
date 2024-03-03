@@ -137,4 +137,4 @@ GitHub.sublime-settings
 !.vscode/extensions.json
 .history
 
-scraper/movie_dictionary.json
+fetcher/movie_dictionary.json
