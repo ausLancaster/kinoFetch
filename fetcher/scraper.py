@@ -38,7 +38,7 @@ class Cinema(ABC):
 
     def __init__(self):
         if not self.initialized:
-            Cinema.get_starting_date()
+            self.starting_date = Cinema.get_starting_date()
             self.initialized = True
 
     @staticmethod
@@ -46,7 +46,6 @@ class Cinema(ABC):
         today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         days_to_thursday = (today.weekday() - 3) % 7
         nearest_thursday = today - timedelta(days=days_to_thursday)
-        Cinema.starting_date = nearest_thursday
         return nearest_thursday
 
     @staticmethod
@@ -80,22 +79,21 @@ class Cinema(ABC):
     def scrape_html(self):
         pass
 
-    def to_markup(self):
-        markup = f"{self.name}\n\n"
-        for listing in self.listings:
-            markup += listing.to_markup()
-            markup += "\n\n"
-        return markup
+    def to_dict(self):
+        result = {"name": self.name, "listings": []}
+        for l in self.listings:
+            result["listings"].append(l.to_dict())
+        return result
 
     def process(self):
         Cinema.current_year = str(datetime.now().year)
         Cinema.html = Cinema.fetch_html(self.session_url, Cinema.cookies)
         self.scrape_html()
-        return self.to_markup()
+        return self.to_dict()
 
     @staticmethod
     def is_within_week(target_date):
-        date_difference = target_date - Cinema.starting_date
+        date_difference = target_date - Cinema.get_starting_date()
         return timedelta(days=0) <= date_difference <= timedelta(days=6)
 
 
@@ -105,7 +103,8 @@ class Palace(Cinema):
     Cinema.session_url = Cinema.base_url + "/session-times"
     Cinema.cookies = {"user-set-location": "VIC"}
     blacklist = ["Opéra de Paris", "Paris Opera Ballet", "Opera di Roma", "Royal Ballet", "Royal Opera", "NT LIVE"]
-    cinema_list = ['Kino cinema']  # , 'Pentridge cinema', 'Palace balwyn cinema', 'Palace brighton bay', 'Palace cinema como', 'Palace dendy brighton', 'Palace westgarth', 'Palace penny lane']
+    cinema_list = [
+        'Kino cinema']  # , 'Pentridge cinema', 'Palace balwyn cinema', 'Palace brighton bay', 'Palace cinema como', 'Palace dendy brighton', 'Palace westgarth', 'Palace penny lane']
 
     def scrape_html(self):
         soup = BeautifulSoup(Cinema.html, "html.parser")
@@ -247,7 +246,8 @@ class Palace(Cinema):
                     else:
                         print(f"Error: failed to fetch {title} by id ({imdb_id}) on OMDB")
                 print(f"{film_search_json}")
-                print(f"No matching director found in in OMDB: \"{title}\" {film_search_json['Search'][0]["Director"]} vs {director_list1}")
+                print(
+                    f"No matching director found in in OMDB: \"{title}\" {film_search_json['Search'][0]["Director"]} vs {director_list1}")
         else:
             print(f"Error: failed to search {title} on OMDB")
         return None

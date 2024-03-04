@@ -1,7 +1,20 @@
 
+<div>
     <p><b>WEEKLY FILM LISTINGS</b></p>
     <p><b>{{ date_range }}</b></p>
-    <p id="weeklyListings">{{ listings }}</p>
+    <p id="weeklyListings">
+    <p><b><u>{{ listings.name|capfirst }}</u></b></p>
+    {% for l in listings.listings %}
+
+        <p>
+            <i>{{ l.title }}</i><br/>
+            {{ l.screening_info }}<br/>
+            {{ l.weekly_times }}<br/>
+        </p>
+    {% endfor %}
+    <p>
+</div>
+
 
 <script>
     /*function date_range_to_string() {
@@ -20,7 +33,6 @@
     }*/
 
     //document.getElementById('dateRange').innerText = date_range_to_string();
-    console.log(1)
     /*function load_weekly_listings() {
         // Make an AJAX request to fetch data from the server
         var xhr = new XMLHttpRequest();
