@@ -135,6 +135,13 @@ class Palace(Cinema):
                     continue
             Cinema.result += "\n"
             break
+        previous = ""
+        for i in range(len(Cinema.listings) - 1, -1, -1):
+            if Cinema.listings[i].title == previous.title and Cinema.listings[i].year == Cinema.listings[i].year:
+                del Cinema.listings[i]
+                print(f"Removed duplicate: {previous.title}")
+            else:
+                previous = Cinema.listings[i]
         if Cinema.result.isalpha():
             print(f"Scraping Error: Results are empty")
         return Cinema.result
