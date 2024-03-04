@@ -45,6 +45,8 @@ class Cinema(ABC):
     def get_starting_date():
         today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         days_to_thursday = (today.weekday() - 3) % 7
+        if days_to_thursday >= 6:
+            days_to_thursday -= 7
         nearest_thursday = today - timedelta(days=days_to_thursday)
         return nearest_thursday
 
